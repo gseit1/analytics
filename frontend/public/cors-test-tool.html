@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>CORS Test Tool</h1>
+    <p>This page will help test CORS configuration between your frontend and backend.</p>
+    
+    <div>
+        <h2>1. Test Simple GET Request</h2>
+        <button id="testGet">Test GET /test-cors</button>
+        <div id="getResult"></div>
+    </div>
+
+    <div>
+        <h2>2. Test Login POST Request</h2>
+        <button id="testLogin">Test POST /api/auth/login</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <script>
+        // Backend URL
+        const backendUrl = 'https://jobanalytics-backend.onrender.com';
+        
+        // Function to display results
+        function displayResult(elementId, isSuccess, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<p class="${isSuccess ? 'success' : 'error'}">${message}</p>`;
+            
+            if (data) {
+                element.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+        }
+
+        // Test GET request
+        document.getElementById('testGet').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${backendUrl}/test-cors`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayResult('getResult', true, 'GET request successful!', data);
+                } else {
+                    displayResult('getResult', false, `GET request failed with status: ${response.status}`);
+                }
+            } catch (error) {
+                displayResult('getResult', false, `Error: ${error.message}`);
+                console.error('GET request error details:', error);
+            }
+        });
+
+        // Test POST request for login
+        document.getElementById('testLogin').addEventListener('click', async () => {
+            try {
+                // First test with OPTIONS (simulating preflight)
+                const preflightResponse = await fetch(`${backendUrl}/api/auth/login`, {
+                    method: 'OPTIONS',
+                    credentials: 'include',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization'
+                    }
+                });
+                
+                let preflightDetails = {
+                    status: preflightResponse.status,
+                    statusText: preflightResponse.statusText,
+                    headers: {}
+                };
+                
+                preflightResponse.headers.forEach((value, key) => {
+                    preflightDetails.headers[key] = value;
+                });
+
+                // Now try the actual request
+                const loginResponse = await fetch(`${backendUrl}/api/auth/login`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                let responseDetails;
+                let responseData;
+                
+                try {
+                    responseData = await loginResponse.json();
+                } catch (e) {
+                    responseData = { parseError: true };
+                }
+                
+                responseDetails = {
+                    status: loginResponse.status,
+                    statusText: loginResponse.statusText,
+                    headers: {},
+                    data: responseData
+                };
+                
+                loginResponse.headers.forEach((value, key) => {
+                    responseDetails.headers[key] = value;
+                });
+
+                displayResult('loginResult', loginResponse.ok, 
+                    loginResponse.ok ? 'POST login request successful!' : `POST login request failed with status: ${loginResponse.status}`, 
+                    {
+                        preflight: preflightDetails,
+                        response: responseDetails
+                    });
+            } catch (error) {
+                displayResult('loginResult', false, `Error: ${error.message}`);
+                console.error('POST login error details:', error);
+            }
+        });
+    </script>
+</body>
+</html>

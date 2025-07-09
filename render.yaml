@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: job-analytics-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: worktracker.ct.ws
+      # Add your other environment variables through the Render dashboard
+      # DO NOT include sensitive variables like JWT_SECRET or DB credentials in this file

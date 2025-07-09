@@ -1,8 +1,13 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: process.env.VUE_APP_API_URL || 'https://your-backend-url.com/api',
-  timeout: 10000
+  baseURL: process.env.VUE_APP_API_URL || 'https://jobanalytics-backend.onrender.com/api',
+  timeout: 10000,
+  withCredentials: true, // This is important for CORS with credentials
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  }
 })
 
 // Request interceptor to add auth token

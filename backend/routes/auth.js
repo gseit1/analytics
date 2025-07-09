@@ -80,11 +80,25 @@ router.post('/register', [
   }
 });
 
+// Explicitly handle preflight for login
+router.options('/login', (req, res) => {
+  // Set CORS headers explicitly for this specific route
+  res.header('Access-Control-Allow-Origin', req.header('Origin') || 'https://worktracker.ct.ws');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  res.status(204).end();
+});
+
 // Login
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty()
 ], async (req, res) => {
+  // Set CORS headers for the actual request
+  res.header('Access-Control-Allow-Origin', req.header('Origin') || 'https://worktracker.ct.ws');
+  res.header('Access-Control-Allow-Credentials', 'true');
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
