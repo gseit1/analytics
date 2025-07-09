@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   'https://worktracker.ct.ws',      // Production frontend
   'http://localhost:8080',          // Local development
-  'https://jobanalytics-backend.onrender.com' // Backend URL (for testing)
+  'https://analytics-irb5.onrender.com' // Backend URL (for testing)
 ];
 
 // CORS middleware configuration

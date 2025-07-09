@@ -1,9 +1,10 @@
 import axios from 'axios'
 
+// Use the PHP proxy instead of direct backend URL
 const api = axios.create({
-  baseURL: '/api-proxy.php?path=api', // Using our PHP proxy to avoid CORS issues
+  baseURL: '/api-proxy.php?path=api', // This will forward to your backend's /api path
   timeout: 10000,
-  withCredentials: false, // Change to false when using the proxy
+  withCredentials: false, // Change to false when using proxy
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
