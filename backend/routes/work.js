@@ -40,6 +40,176 @@ router.put('/schedule', authenticateToken, async (req, res) => {
   }
 });
 
+// Schedule a specific work day
+router.post('/schedule', authenticateToken, [
+  body('date').isISO8601().toDate(),
+  body('hours').isFloat({ min: 0.5, max: 24 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { date, hours } = req.body;
+    
+    // Check if a work day already exists for this date
+    const existingWork = await db.query(
+      'SELECT id FROM work_days WHERE user_id = ? AND work_date = ?',
+      [req.user.userId, date]
+    );
+
+    if (existingWork.length > 0) {
+      return res.status(400).json({ message: 'Work day already logged for this date' });
+    }
+
+    // Check if already scheduled
+    const existingSchedule = await db.query(
+      'SELECT id FROM scheduled_work_days WHERE user_id = ? AND scheduled_date = ?',
+      [req.user.userId, date]
+    );
+
+    if (existingSchedule.length > 0) {
+      return res.status(400).json({ message: 'Day already scheduled' });
+    }
+
+    // Add to scheduled work days
+    await db.query(
+      'INSERT INTO scheduled_work_days (user_id, scheduled_date, planned_hours) VALUES (?, ?, ?)',
+      [req.user.userId, date, hours]
+    );
+
+    res.status(201).json({ message: 'Work day scheduled successfully' });
+  } catch (error) {
+    console.error('Schedule work day error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Remove a scheduled work day
+router.delete('/schedule/:date', authenticateToken, async (req, res) => {
+  try {
+    const { date } = req.params;
+    console.log('DELETE /schedule/:date called with:', { date, userId: req.user.userId });
+    
+    const result = await db.query(
+      'DELETE FROM scheduled_work_days WHERE user_id = ? AND scheduled_date = ?',
+      [req.user.userId, date]
+    );
+
+    console.log('Delete result:', result);
+
+    if (result.affectedRows === 0) {
+      console.log('No scheduled work day found for date:', date);
+      return res.status(404).json({ message: 'Scheduled work day not found' });
+    }
+
+    console.log('Successfully removed scheduled work day for date:', date);
+    res.json({ message: 'Scheduled work day removed successfully' });
+  } catch (error) {
+    console.error('Remove scheduled work day error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Skip a recurring scheduled work day
+router.post('/schedule/skip/:date', authenticateToken, async (req, res) => {
+  try {
+    const { date } = req.params;
+    console.log('POST /schedule/skip/:date called with:', { date, userId: req.user.userId });
+    
+    // Check if already skipped
+    const existingSkip = await db.query(
+      'SELECT id FROM skipped_work_days WHERE user_id = ? AND skipped_date = ?',
+      [req.user.userId, date]
+    );
+
+    if (existingSkip.length > 0) {
+      return res.status(400).json({ message: 'Day already marked as skipped' });
+    }
+
+    // Add to skipped work days
+    await db.query(
+      'INSERT INTO skipped_work_days (user_id, skipped_date, reason) VALUES (?, ?, ?)',
+      [req.user.userId, date, 'User skipped']
+    );
+
+    console.log('Successfully marked day as skipped:', date);
+    res.status(201).json({ message: 'Day marked as skipped successfully' });
+  } catch (error) {
+    console.error('Skip scheduled work day error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Remove skip from a day (un-skip)
+router.delete('/schedule/skip/:date', authenticateToken, async (req, res) => {
+  try {
+    const { date } = req.params;
+    console.log('DELETE /schedule/skip/:date called with:', { date, userId: req.user.userId });
+    
+    const result = await db.query(
+      'DELETE FROM skipped_work_days WHERE user_id = ? AND skipped_date = ?',
+      [req.user.userId, date]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Skipped day not found' });
+    }
+
+    console.log('Successfully removed skip for date:', date);
+    res.json({ message: 'Skip removed successfully' });
+  } catch (error) {
+    console.error('Remove skip error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Bulk schedule management
+router.post('/schedule/bulk', authenticateToken, [
+  body('month').isInt({ min: 1, max: 12 }),
+  body('year').isInt({ min: 2020, max: 2030 }),
+  body('scheduledDays').isArray(),
+  body('defaultHours').isFloat({ min: 0.5, max: 24 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { month, year, scheduledDays, defaultHours } = req.body;
+    console.log('Bulk schedule update:', { month, year, scheduledDays: scheduledDays.length, defaultHours, userId: req.user.userId });
+
+    // Use transaction
+    await db.transaction(async (connection) => {
+      // First, remove all existing scheduled days for the month
+      const [deleteResult] = await connection.execute(
+        'DELETE FROM scheduled_work_days WHERE user_id = ? AND MONTH(scheduled_date) = ? AND YEAR(scheduled_date) = ?',
+        [req.user.userId, month, year]
+      );
+      console.log('Deleted existing scheduled days:', deleteResult.affectedRows);
+
+      // Then, add the new scheduled days
+      if (scheduledDays.length > 0) {
+        for (const day of scheduledDays) {
+          const [insertResult] = await connection.execute(
+            'INSERT INTO scheduled_work_days (user_id, scheduled_date, planned_hours) VALUES (?, ?, ?)',
+            [req.user.userId, day.date, day.hours || defaultHours]
+          );
+          console.log('Inserted scheduled day:', day.date, insertResult.affectedRows);
+        }
+      }
+    });
+
+    console.log('Schedule update committed successfully');
+    res.json({ message: 'Schedule updated successfully' });
+  } catch (error) {
+    console.error('Bulk schedule update error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Get work days with pagination
 router.get('/days', authenticateToken, async (req, res) => {
   try {
@@ -396,6 +566,24 @@ router.get('/calendar/monthly', authenticateToken, async (req, res) => {
       WHERE user_id = ? AND MONTH(work_date) = ? AND YEAR(work_date) = ?
     `, [hourlyRate, req.user.userId, month, year]);
     
+    // Get scheduled work days for the month
+    const scheduledWorkDays = await db.query(`
+      SELECT 
+        scheduled_date,
+        planned_hours
+      FROM scheduled_work_days
+      WHERE user_id = ? AND MONTH(scheduled_date) = ? AND YEAR(scheduled_date) = ?
+    `, [req.user.userId, month, year]);
+
+    // Get skipped work days for the month
+    const skippedWorkDays = await db.query(`
+      SELECT 
+        skipped_date,
+        reason
+      FROM skipped_work_days
+      WHERE user_id = ? AND MONTH(skipped_date) = ? AND YEAR(skipped_date) = ?
+    `, [req.user.userId, month, year]);
+    
     // Generate calendar data
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
@@ -414,6 +602,12 @@ router.get('/calendar/monthly', authenticateToken, async (req, res) => {
       // Find work day data
       const workDay = workDays.find(w => w.work_date.toISOString().split('T')[0] === dateString);
       
+      // Find scheduled work day data
+      const scheduledWorkDay = scheduledWorkDays.find(s => s.scheduled_date.toISOString().split('T')[0] === dateString);
+      
+      // Find skipped work day data
+      const skippedWorkDay = skippedWorkDays.find(s => s.skipped_date.toISOString().split('T')[0] === dateString);
+      
       const dayData = {
         date: dateString,
         day: day,
@@ -429,7 +623,11 @@ router.get('/calendar/monthly', authenticateToken, async (req, res) => {
         paymentStatus: null,
         startTime: null,
         endTime: null,
-        notes: null
+        notes: null,
+        isSpecificallyScheduled: false, // Flag to distinguish specific vs. weekly schedule
+        canRemoveFromSchedule: false, // Flag to determine if "Remove" button should show
+        isSkipped: false, // Flag to indicate if day was skipped
+        skipReason: null
       };
       
       if (workDay) {
@@ -443,11 +641,36 @@ router.get('/calendar/monthly', authenticateToken, async (req, res) => {
         dayData.startTime = workDay.start_time;
         dayData.endTime = workDay.end_time;
         dayData.notes = workDay.notes;
-      } else if (scheduleDay && scheduleDay.is_work_day) {
-        // Scheduled to work but not yet worked
+      } else if (scheduledWorkDay) {
+        // Specifically scheduled for this date
         const today = new Date();
         const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
         const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        dayData.isSpecificallyScheduled = true;
+        dayData.canRemoveFromSchedule = true;
+        
+        if (currentDateOnly < todayOnly) {
+          dayData.status = 'missed'; // Past scheduled day not worked
+        } else {
+          dayData.status = 'scheduled'; // Future scheduled day
+          dayData.hours = parseFloat(scheduledWorkDay.planned_hours);
+          dayData.earnings = parseFloat(scheduledWorkDay.planned_hours) * hourlyRate;
+        }
+      } else if (skippedWorkDay) {
+        // Day was skipped
+        dayData.status = 'skipped';
+        dayData.isSkipped = true;
+        dayData.skipReason = skippedWorkDay.reason;
+        dayData.canRemoveFromSchedule = true; // Allow un-skipping
+      } else if (scheduleDay && scheduleDay.is_work_day) {
+        // Scheduled to work based on weekly schedule but not specifically scheduled
+        const today = new Date();
+        const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        dayData.isSpecificallyScheduled = false;
+        dayData.canRemoveFromSchedule = false; // Can't remove weekly recurring schedule from individual day
         
         if (currentDateOnly < todayOnly) {
           dayData.status = 'missed'; // Past scheduled day not worked
@@ -463,7 +686,7 @@ router.get('/calendar/monthly', authenticateToken, async (req, res) => {
     
     // Calculate summary stats
     const workedDays = calendarData.filter(d => d.worked);
-    const scheduledDays = calendarData.filter(d => d.isScheduledWorkDay);
+    const scheduledDays = calendarData.filter(d => d.status === 'scheduled' || d.isScheduledWorkDay);
     const missedDays = calendarData.filter(d => d.status === 'missed');
     
     const summary = {
@@ -487,6 +710,43 @@ router.get('/calendar/monthly', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('Get monthly calendar error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get upcoming work days
+router.get('/upcoming', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 7 } = req.query;
+    const currentDate = new Date();
+    
+    // Get upcoming scheduled work days
+    const upcomingDays = await db.query(`
+      SELECT 
+        DATE(DATE_ADD(CURDATE(), INTERVAL seq.seq DAY)) as date,
+        ws.default_hours,
+        ws.is_work_day,
+        wd.id as work_day_id,
+        wd.hours_worked as loggedHours,
+        CASE WHEN wd.id IS NOT NULL THEN 1 ELSE 0 END as isLogged
+      FROM (
+        SELECT 0 as seq UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 
+        UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
+      ) seq
+      LEFT JOIN work_schedule ws ON ws.user_id = ? 
+        AND ws.day_of_week = DAYOFWEEK(DATE_ADD(CURDATE(), INTERVAL seq.seq DAY)) - 1
+        AND ws.is_work_day = 1
+      LEFT JOIN work_days wd ON wd.user_id = ? 
+        AND wd.work_date = DATE(DATE_ADD(CURDATE(), INTERVAL seq.seq DAY))
+      WHERE ws.is_work_day = 1 OR wd.id IS NOT NULL
+      ORDER BY date
+      LIMIT ?
+    `, [req.user.userId, req.user.userId, parseInt(limit)]);
+
+    res.json(upcomingDays);
+  } catch (error) {
+    console.error('Get upcoming work days error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

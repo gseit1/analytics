@@ -11,7 +11,10 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   'https://worktracker.ct.ws',      // Production frontend
   'http://localhost:8080',          // Local development
-  'https://analytics-irb5.onrender.com' // Backend URL (for testing)
+  'http://192.168.1.2:8080',        // Network access frontend
+  'https://analytics-irb5.onrender.com', // Backend URL (for testing)
+  null, // Allow requests with no origin
+  undefined // Also catch undefined origins
 ];
 
 // CORS middleware configuration
@@ -22,15 +25,27 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
+    // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log('Blocked by CORS:', origin);
-      callback(new Error('Not allowed by CORS'));
+      // Allow any origin from the same network (192.168.1.x)
+      if (origin && origin.includes('192.168.1.')) {
+        console.log('Allowing network origin:', origin);
+        callback(null, true);
+      } else {
+        console.log('Blocked by CORS:', origin);
+        // In development, allow all origins for easier testing
+        if (process.env.NODE_ENV === 'development') {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      }
     }
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: false, // Set to false for mobile compatibility
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
 };
 
@@ -53,10 +68,31 @@ app.get('/test-cors', (req, res) => {
 });
 
 // Routes
+console.log('Loading auth routes...');
 app.use('/api/auth', require('./routes/auth'));
+console.log('Auth routes loaded.');
+console.log('Loading work routes...');
 app.use('/api/work', require('./routes/work'));
+console.log('Work routes loaded.');
+console.log('Loading expenses routes...');
 app.use('/api/expenses', require('./routes/expenses'));
+console.log('Expenses routes loaded.');
+
+console.log('Loading dashboard routes...');
 app.use('/api/dashboard', require('./routes/dashboard'));
+console.log('Dashboard routes loaded.');
+
+console.log('Loading goals routes...');
+app.use('/api/goals', require('./routes/goals'));
+console.log('Goals routes loaded.');
+
+console.log('Loading customization routes...');
+app.use('/api/customization', require('./routes/customization'));
+console.log('Customization routes loaded.');
+
+console.log('Loading calendar routes...');
+app.use('/api/calendar', require('./routes/calendar'));
+console.log('Calendar routes loaded.');
 
 // Health check
 app.get('/api/health', (req, res) => {

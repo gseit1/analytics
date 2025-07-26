@@ -2,54 +2,79 @@
   <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container">
       <router-link class="navbar-brand" to="/">
-        <i class="bi bi-graph-up-arrow me-2"></i>
-        Job Analytics
+        <div class="brand-icon">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <span class="brand-text">Job Analytics</span>
       </router-link>
 
       <button
-        class="navbar-toggler"
+        class="navbar-toggler border-0"
         type="button"
         @click="toggleNavbar"
         ref="navbarToggler"
+        aria-label="Toggle navigation"
       >
-        <span class="navbar-toggler-icon"></span>
+        <div class="hamburger-menu" :class="{ 'active': isNavbarOpen }">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav" ref="navbarMenu">
         <ul class="navbar-nav me-auto">
           <li class="nav-item" @click="closeNavbar">
-            <router-link class="nav-link" to="/">
-              <i class="bi bi-speedometer2 me-1"></i>
-              Dashboard
+            <router-link class="nav-link" to="/" exact-active-class="active">
+              <i class="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
             </router-link>
           </li>
           <li class="nav-item" @click="closeNavbar">
-            <router-link class="nav-link" to="/work">
-              <i class="bi bi-clock me-1"></i>
-              Work Log
+            <router-link class="nav-link" to="/work" active-class="active">
+              <i class="bi bi-clock"></i>
+              <span>Work Log</span>
             </router-link>
           </li>
           <li class="nav-item" @click="closeNavbar">
-            <router-link class="nav-link" to="/expenses">
-              <i class="bi bi-wallet2 me-1"></i>
-              Expenses
+            <router-link class="nav-link" to="/expenses" active-class="active">
+              <i class="bi bi-wallet2"></i>
+              <span>Expenses</span>
             </router-link>
           </li>
           <li class="nav-item" @click="closeNavbar">
-            <router-link class="nav-link" to="/schedule">
-              <i class="bi bi-calendar-week me-1"></i>
-              Schedule
+            <router-link class="nav-link" to="/calendar" active-class="active">
+              <i class="bi bi-calendar3"></i>
+              <span>Calendar</span>
             </router-link>
           </li>
           <li class="nav-item" @click="closeNavbar">
-            <router-link class="nav-link" to="/statistics">
-              <i class="bi bi-bar-chart me-1"></i>
-              Statistics
+            <router-link class="nav-link" to="/schedule" active-class="active">
+              <i class="bi bi-calendar-week"></i>
+              <span>Schedule</span>
+            </router-link>
+          </li>
+          <li class="nav-item" @click="closeNavbar">
+            <router-link class="nav-link" to="/goals" active-class="active">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </router-link>
+          </li>
+          <li class="nav-item" @click="closeNavbar">
+            <router-link class="nav-link" to="/statistics" active-class="active">
+              <i class="bi bi-bar-chart"></i>
+              <span>Statistics</span>
             </router-link>
           </li>
         </ul>
 
         <ul class="navbar-nav">
+          <li class="nav-item" @click="closeNavbar">
+            <router-link class="nav-link" to="/customization" active-class="active">
+              <i class="bi bi-palette"></i>
+              <span>Customize</span>
+            </router-link>
+          </li>
           <li class="nav-item dropdown" ref="profileDropdown">
             <a
               class="nav-link dropdown-toggle"
@@ -57,21 +82,21 @@
               role="button"
               @click.prevent="toggleProfileDropdown"
             >
-              <i class="bi bi-person-circle me-1"></i>
-              {{ user?.username }}
+              <i class="bi bi-person-circle"></i>
+              <span>{{ user?.username }}</span>
             </a>
             <ul class="dropdown-menu" :class="{ show: profileDropdownOpen }">
               <li>
                 <router-link class="dropdown-item" to="/profile" @click="closeAllMenus">
-                  <i class="bi bi-gear me-2"></i>
-                  Profile Settings
+                  <i class="bi bi-gear"></i>
+                  <span>Profile Settings</span>
                 </router-link>
               </li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <a class="dropdown-item" href="#" @click="handleLogout">
-                  <i class="bi bi-box-arrow-right me-2"></i>
-                  Logout
+                  <i class="bi bi-box-arrow-right"></i>
+                  <span>Logout</span>
                 </a>
               </li>
             </ul>
@@ -181,10 +206,6 @@ export default {
 </script>
 
 <style scoped>
-.navbar {
-  background-color: #343a40;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
 
 .dropdown-menu.show {
   display: block;
@@ -316,5 +337,13 @@ export default {
     padding-left: 0.5rem !important;
     border-radius: 4px;
   }
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1050;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  background: var(--primary-700, #4338ca);
 }
 </style>

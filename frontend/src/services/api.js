@@ -1,9 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api-proxy.php?path=api', // Using our PHP proxy to avoid CORS issues
+  baseURL: process.env.VUE_APP_API_URL || 'http://localhost:3001/api',
   timeout: 10000,
-  withCredentials: false, // Change to false when using the proxy
+  withCredentials: false,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'

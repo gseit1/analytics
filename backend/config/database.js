@@ -31,6 +31,25 @@ class Database {
   async getConnection() {
     return await this.pool.getConnection();
   }
+
+  async transaction(callback) {
+    const connection = await this.getConnection();
+    try {
+      await connection.beginTransaction();
+      const result = await callback(connection);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async getConnection() {
+    return await this.pool.getConnection();
+  }
 }
 
 module.exports = new Database();
