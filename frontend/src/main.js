@@ -10,10 +10,8 @@ import './assets/css/global.css'
 
 // Import Bootstrap Modal class
 import { Modal } from 'bootstrap'
-import * as bootstrap from 'bootstrap'
 
-// Make Bootstrap available globally
-window.bootstrap = bootstrap
+// Make Bootstrap Modal available globally
 window.Modal = Modal
 
 const app = createApp(App)

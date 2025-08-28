@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid py-4">
+  <div class="container-fluid py-4 expenses-page">
     <div class="row">
       <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -13,7 +13,7 @@
 
     <!-- Summary Cards -->
     <div class="row mb-4">
-      <div class="col-md-4">
+      <div class="col-md-4 col-12 mb-3 mb-md-0">
         <div class="card stats-card success">
           <div class="card-body">
             <div class="d-flex justify-content-between">
@@ -28,7 +28,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-4 col-12 mb-3 mb-md-0">
         <div class="card stats-card danger">
           <div class="card-body">
             <div class="d-flex justify-content-between">
@@ -43,7 +43,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-4 col-12">
         <div class="card stats-card" :class="summary.net >= 0 ? 'success' : 'danger'">
           <div class="card-body">
             <div class="d-flex justify-content-between">
@@ -62,7 +62,7 @@
 
     <!-- Filters -->
     <div class="row mb-4">
-      <div class="col-lg-8">
+      <div class="col-lg-8 col-12 mb-3 mb-lg-0">
         <div class="card">
           <div class="card-body">
             <div class="row g-3">
@@ -115,15 +115,13 @@
             <div v-if="loading" class="text-center py-4">
               <div class="spinner-border text-primary" role="status"></div>
             </div>
-
             <div v-else-if="expenses.length === 0" class="text-center py-4">
               <i class="bi bi-receipt text-muted" style="font-size: 3rem;"></i>
               <p class="text-muted mt-2">No transactions found</p>
               <button class="btn btn-primary" @click="showAddModal">Add Your First Transaction</button>
             </div>
-
             <div v-else>
-              <div class="table-responsive">
+              <div class="table-responsive expenses-table-responsive">
                 <table class="table table-hover">
                   <thead>
                     <tr>
@@ -162,7 +160,6 @@
                   </tbody>
                 </table>
               </div>
-
               <!-- Pagination -->
               <nav v-if="pagination.totalPages > 1" class="mt-4">
                 <ul class="pagination justify-content-center">
@@ -235,7 +232,7 @@
                   required
                 >
                 <datalist id="categories">
-                  <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+                  <option v-for="category in categories" :key="category" :value="category" />
                 </datalist>
               </div>
               <div class="mb-3">
@@ -488,3 +485,20 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+@media (max-width: 900px) {
+  .expenses-page {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .expenses-table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .row.mb-4 > div {
+    margin-bottom: 1rem !important;
+  }
+}
+</style>
+                  

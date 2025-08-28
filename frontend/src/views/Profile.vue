@@ -1,21 +1,16 @@
 <template>
-  <div class="container-fluid py-4">
-    <div class="row">
-      <div class="col-12">
-        <h1 class="h3 mb-4">Profile Settings</h1>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-lg-8">
+  <div class="page-content profile-page">
+    <h1 class="h3 mb-4">Profile Settings</h1>
+    <div class="profile-main-row">
+      <div class="profile-main-col">
         <div class="card">
           <div class="card-header">
             <h5 class="mb-0">User Information</h5>
           </div>
           <div class="card-body">
             <form @submit.prevent="updateProfile">
-              <div class="row">
-                <div class="col-md-6 mb-3">
+              <div class="profile-form-row">
+                <div class="profile-form-col">
                   <label class="form-label">Username</label>
                   <input
                     type="text"
@@ -25,7 +20,7 @@
                   >
                   <small class="text-muted">Username cannot be changed</small>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="profile-form-col">
                   <label class="form-label">Email</label>
                   <input
                     type="email"
@@ -36,9 +31,8 @@
                   <small class="text-muted">Email cannot be changed</small>
                 </div>
               </div>
-
-              <div class="row">
-                <div class="col-md-6 mb-3">
+              <div class="profile-form-row">
+                <div class="profile-form-col">
                   <label class="form-label">Hourly Rate ($)</label>
                   <input
                     type="number"
@@ -50,7 +44,7 @@
                   >
                   <small class="text-muted">Your current hourly wage</small>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="profile-form-col">
                   <label class="form-label">Member Since</label>
                   <input
                     type="text"
@@ -60,7 +54,6 @@
                   >
                 </div>
               </div>
-
               <div class="text-end">
                 <button type="submit" class="btn btn-primary" :disabled="updating">
                   <span v-if="updating" class="loading me-2"></span>
@@ -71,8 +64,7 @@
           </div>
         </div>
       </div>
-
-      <div class="col-lg-4">
+      <div class="profile-side-col">
         <div class="card">
           <div class="card-header">
             <h5 class="mb-0">Account Summary</h5>
@@ -86,28 +78,24 @@
               <h5 class="mt-3 mb-1">{{ user?.username }}</h5>
               <p class="text-muted mb-0">{{ user?.email }}</p>
             </div>
-
             <div class="mb-3">
               <div class="d-flex justify-content-between">
                 <span>Current Hourly Rate:</span>
                 <strong class="text-success">${{ user?.hourlyRate }}</strong>
               </div>
             </div>
-
             <div class="mb-3">
               <div class="d-flex justify-content-between">
                 <span>Total Work Days:</span>
                 <strong>{{ stats.totalWorkDays }}</strong>
               </div>
             </div>
-
             <div class="mb-3">
               <div class="d-flex justify-content-between">
                 <span>Total Hours Worked:</span>
                 <strong>{{ stats.totalHours }}h</strong>
               </div>
             </div>
-
             <div class="mb-0">
               <div class="d-flex justify-content-between">
                 <span>Total Earnings:</span>
@@ -116,7 +104,6 @@
             </div>
           </div>
         </div>
-
         <div class="card mt-4">
           <div class="card-header">
             <h5 class="mb-0">Quick Actions</h5>

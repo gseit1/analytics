@@ -1,13 +1,8 @@
 <template>
-  <div class="container-fluid py-4">
-    <div class="row">
-      <div class="col-12">
-        <h1 class="h3 mb-4">Statistics</h1>
-      </div>
-    </div>
-
-    <div class="row mb-4">
-      <div class="col-lg-6">
+  <div class="page-content statistics-page">
+    <h1 class="h3 mb-4">Statistics</h1>
+    <div class="stats-charts-row">
+      <div class="stats-chart-card">
         <div class="card">
           <div class="card-header">
             <h5 class="mb-0">Year Overview</h5>
@@ -25,28 +20,22 @@
           </div>
         </div>
       </div>
-
-      <div class="col-lg-6">
+      <div class="stats-chart-card">
         <div class="card">
           <div class="card-header">
             <h5 class="mb-0">Monthly Breakdown</h5>
           </div>
           <div class="card-body">
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <select class="form-select" v-model="selectedMonth" @change="fetchMonthlyStats">
-                  <option v-for="month in months" :key="month.value" :value="month.value">
-                    {{ month.label }}
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <select class="form-select" v-model="selectedMonthYear" @change="fetchMonthlyStats">
-                  <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-                </select>
-              </div>
+            <div class="stats-month-selectors">
+              <select class="form-select" v-model="selectedMonth" @change="fetchMonthlyStats">
+                <option v-for="month in months" :key="month.value" :value="month.value">
+                  {{ month.label }}
+                </option>
+              </select>
+              <select class="form-select" v-model="selectedMonthYear" @change="fetchMonthlyStats">
+                <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+              </select>
             </div>
-
             <div v-if="loadingMonth" class="text-center py-4">
               <div class="spinner-border text-primary" role="status"></div>
             </div>
@@ -61,10 +50,9 @@
         </div>
       </div>
     </div>
-
     <!-- Summary Cards -->
-    <div class="row mb-4">
-      <div class="col-md-3">
+    <div class="stats-summary-row">
+      <div class="stats-summary-card">
         <div class="card stats-card">
           <div class="card-body text-center">
             <div class="stats-value">{{ yearData.totalHours || 0 }}</div>
@@ -72,7 +60,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="stats-summary-card">
         <div class="card stats-card success">
           <div class="card-body text-center">
             <div class="stats-value">${{ yearData.totalEarnings || 0 }}</div>
@@ -80,7 +68,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="stats-summary-card">
         <div class="card stats-card warning">
           <div class="card-body text-center">
             <div class="stats-value">{{ yearData.totalDays || 0 }}</div>
@@ -88,7 +76,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="stats-summary-card">
         <div class="card stats-card">
           <div class="card-body text-center">
             <div class="stats-value">{{ yearData.avgHoursPerDay || 0 }}</div>
@@ -97,10 +85,9 @@
         </div>
       </div>
     </div>
-
     <!-- Work Patterns -->
-    <div class="row">
-      <div class="col-lg-8">
+    <div class="work-patterns-row">
+      <div class="work-patterns-table">
         <div class="card">
           <div class="card-header">
             <h5 class="mb-0">Monthly Work Trends</h5>
@@ -124,9 +111,9 @@
                   <tr v-for="month in yearData.monthlyData" :key="month.month">
                     <td class="fw-bold">{{ getMonthName(month.month) }}</td>
                     <td>{{ month.days_worked }}</td>
-                    <td>{{ parseFloat(month.total_hours) || 0 }}h</td>
-                    <td>{{ month.days_worked > 0 ? ((parseFloat(month.total_hours) || 0) / month.days_worked).toFixed(2) : 0 }}h</td>
-                    <td class="text-success fw-bold">${{ parseFloat(month.work_earnings) || 0 }}</td>
+                    <td>{{ month.total_hours }}h</td>
+                    <td>{{ month.days_worked > 0 ? (month.total_hours / month.days_worked).toFixed(2) : 0 }}h</td>
+                    <td class="text-success fw-bold">${{ month.work_earnings }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -256,30 +243,30 @@ export default {
     const mostProductiveMonth = computed(() => {
       if (!yearData.value.monthlyData.length) return 'N/A'
       const max = yearData.value.monthlyData.reduce((prev, current) =>
-        ((parseFloat(prev.total_hours) || 0) > (parseFloat(current.total_hours) || 0)) ? prev : current
+        (prev.total_hours > current.total_hours) ? prev : current
       )
-      return (parseFloat(max.total_hours) || 0) > 0 ? getMonthName(max.month) : 'N/A'
+      return max.total_hours > 0 ? getMonthName(max.month) : 'N/A'
     })
 
     const highestEarningsMonth = computed(() => {
       if (!yearData.value.monthlyData.length) return 'N/A'
       const max = yearData.value.monthlyData.reduce((prev, current) =>
-        ((parseFloat(prev.work_earnings) || 0) > (parseFloat(current.work_earnings) || 0)) ? prev : current
+        (prev.work_earnings > current.work_earnings) ? prev : current
       )
-      return (parseFloat(max.work_earnings) || 0) > 0 ? getMonthName(max.month) : 'N/A'
+      return max.work_earnings > 0 ? getMonthName(max.month) : 'N/A'
     })
 
     const avgMonthlyHours = computed(() => {
       if (!yearData.value.monthlyData.length) return '0.00'
-      const total = yearData.value.monthlyData.reduce((sum, month) => sum + (parseFloat(month.total_hours) || 0), 0)
-      const monthsWithData = yearData.value.monthlyData.filter(m => (parseFloat(m.total_hours) || 0) > 0).length
+      const total = yearData.value.monthlyData.reduce((sum, month) => sum + month.total_hours, 0)
+      const monthsWithData = yearData.value.monthlyData.filter(m => m.total_hours > 0).length
       return monthsWithData > 0 ? (total / monthsWithData).toFixed(2) : '0.00'
     })
 
     const avgMonthlyEarnings = computed(() => {
       if (!yearData.value.monthlyData.length) return '0.00'
-      const total = yearData.value.monthlyData.reduce((sum, month) => sum + (parseFloat(month.work_earnings) || 0), 0)
-      const monthsWithData = yearData.value.monthlyData.filter(m => (parseFloat(m.work_earnings) || 0) > 0).length
+      const total = yearData.value.monthlyData.reduce((sum, month) => sum + month.work_earnings, 0)
+      const monthsWithData = yearData.value.monthlyData.filter(m => m.work_earnings > 0).length
       return monthsWithData > 0 ? (total / monthsWithData).toFixed(2) : '0.00'
     })
 
@@ -290,7 +277,7 @@ export default {
       if (selectedYear.value !== currentYear) return 0
 
       const monthData = yearData.value.monthlyData.find(m => m.month === currentMonth)
-      return monthData ? (parseFloat(monthData.total_hours) || 0) : 0
+      return monthData ? monthData.total_hours : 0
     })
 
     const currentMonthEarnings = computed(() => {
@@ -300,7 +287,7 @@ export default {
       if (selectedYear.value !== currentYear) return 0
 
       const monthData = yearData.value.monthlyData.find(m => m.month === currentMonth)
-      return monthData ? (parseFloat(monthData.work_earnings) || 0) : 0
+      return monthData ? monthData.work_earnings : 0
     })
 
     const hourGoalProgress = computed(() => {
@@ -327,14 +314,12 @@ export default {
         yearData.value = response.data
 
         // Calculate totals
-        const totalHours = yearData.value.monthlyData.reduce((sum, m) => sum + (parseFloat(m.total_hours) || 0), 0)
-        const totalEarnings = yearData.value.monthlyData.reduce((sum, m) => sum + (parseFloat(m.work_earnings) || 0), 0)
-        const totalDays = yearData.value.monthlyData.reduce((sum, m) => sum + (parseInt(m.days_worked) || 0), 0)
-        
-        yearData.value.totalHours = totalHours.toFixed(2)
-        yearData.value.totalEarnings = totalEarnings.toFixed(2)
-        yearData.value.totalDays = totalDays
-        yearData.value.avgHoursPerDay = totalDays > 0 ? (totalHours / totalDays).toFixed(2) : '0.00'
+        yearData.value.totalHours = yearData.value.monthlyData.reduce((sum, m) => sum + m.total_hours, 0).toFixed(2)
+        yearData.value.totalEarnings = yearData.value.monthlyData.reduce((sum, m) => sum + m.work_earnings, 0).toFixed(2)
+        yearData.value.totalDays = yearData.value.monthlyData.reduce((sum, m) => sum + m.days_worked, 0)
+        yearData.value.avgHoursPerDay = yearData.value.totalDays > 0
+          ? (yearData.value.totalHours / yearData.value.totalDays).toFixed(2)
+          : '0.00'
 
         await nextTick()
         createYearChart()
@@ -381,14 +366,14 @@ export default {
           labels: yearData.value.monthlyData.map(m => getMonthName(m.month)),
           datasets: [{
             label: 'Hours Worked',
-            data: yearData.value.monthlyData.map(m => parseFloat(m.total_hours) || 0),
+            data: yearData.value.monthlyData.map(m => m.total_hours),
             borderColor: '#6366f1',
             backgroundColor: 'rgba(99, 102, 241, 0.1)',
             tension: 0.4,
             yAxisID: 'y'
           }, {
             label: 'Earnings ($)',
-            data: yearData.value.monthlyData.map(m => parseFloat(m.work_earnings) || 0),
+            data: yearData.value.monthlyData.map(m => m.work_earnings),
             borderColor: '#10b981',
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
             tension: 0.4,

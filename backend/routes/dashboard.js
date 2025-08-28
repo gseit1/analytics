@@ -5,89 +5,15 @@ const db = require('../config/database');
 
 const router = express.Router();
 
-// Get dashboard data (root endpoint)
-router.get('/', authenticateToken, async (req, res) => {
-  try {
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear();
-
-    // Current month work stats
-    const workStatsQuery = await db.query(`
-      SELECT 
-        COUNT(*) as days_worked,
-        SUM(hours_worked) as total_hours,
-        AVG(hours_worked) as avg_hours_per_day,
-        ROUND(SUM(hours_worked * (SELECT hourly_rate FROM user WHERE id = ?)), 2) as total_earnings,
-        ROUND(SUM(IFNULL(tips_amount, 0)), 2) as total_tips
-      FROM work_days 
-      WHERE user_id = ? AND MONTH(work_date) = ? AND YEAR(work_date) = ?
-    `, [req.user.userId, req.user.userId, currentMonth, currentYear]);
-
-    // Current month expense stats
-    const expenseStatsQuery = await db.query(`
-      SELECT 
-        type,
-        SUM(amount) as total_amount,
-        COUNT(*) as transaction_count
-      FROM expenses 
-      WHERE user_id = ? AND MONTH(expense_date) = ? AND YEAR(expense_date) = ?
-      GROUP BY type
-    `, [req.user.userId, currentMonth, currentYear]);
-
-    // Recent work entries (last 5)
-    const recentWork = await db.query(`
-      SELECT wd.*, u.hourly_rate, 
-             ROUND(wd.hours_worked * u.hourly_rate, 2) as total_pay,
-             'work' as day_type
-      FROM work_days wd 
-      JOIN user u ON wd.user_id = u.id 
-      WHERE wd.user_id = ? 
-      ORDER BY wd.work_date DESC
-      LIMIT 5
-    `, [req.user.userId]);
-
-    // Recent transactions (last 5)
-    const recentTransactions = await db.query(`
-      SELECT *, 'expense' as type FROM expenses 
-      WHERE user_id = ? 
-      ORDER BY expense_date DESC, created_at DESC 
-      LIMIT 5
-    `, [req.user.userId]);
-
-    // Format expense stats
-    const expenseStats = {
-      income: 0,
-      expense: 0,
-      net: 0
-    };
-
-    expenseStatsQuery.forEach(row => {
-      expenseStats[row.type] = row.total_amount || 0;
-    });
-    expenseStats.net = expenseStats.income - expenseStats.expense;
-
-    res.json({
-      currentMonth: {
-        work: workStatsQuery[0],
-        expenses: expenseStats
-      },
-      recentWork: recentWork,
-      recentTransactions: recentTransactions
-    });
-
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
 // Get dashboard overview
 router.get('/overview', authenticateToken, async (req, res) => {
   try {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
+  const startOfYear = new Date(currentYear, 0, 1);
+  const todayStr = currentDate.toISOString().split('T')[0];
+  const startOfYearStr = startOfYear.toISOString().split('T')[0];
 
     // Current month work stats
     const workStatsQuery = await db.query(`
@@ -111,6 +37,27 @@ router.get('/overview', authenticateToken, async (req, res) => {
       WHERE user_id = ? AND MONTH(expense_date) = ? AND YEAR(expense_date) = ?
       GROUP BY type
     `, [req.user.userId, currentMonth, currentYear]);
+
+    // Year-to-date work stats
+    const ytdWorkStatsQuery = await db.query(`
+      SELECT 
+        SUM(hours_worked) as total_hours,
+        ROUND(SUM(hours_worked * (SELECT hourly_rate FROM user WHERE id = ?)), 2) as total_earnings,
+        ROUND(SUM(IFNULL(tips_amount, 0)), 2) as total_tips,
+        COUNT(*) as days_worked
+      FROM work_days 
+      WHERE user_id = ? AND work_date BETWEEN ? AND ?
+    `, [req.user.userId, req.user.userId, startOfYearStr, todayStr]);
+
+    // Year-to-date expense stats
+    const ytdExpenseStatsQuery = await db.query(`
+      SELECT 
+        type,
+        SUM(amount) as total_amount
+      FROM expenses 
+      WHERE user_id = ? AND expense_date BETWEEN ? AND ?
+      GROUP BY type
+    `, [req.user.userId, startOfYearStr, todayStr]);
 
     // Recent work days (last 7 days)
     const recentWorkDays = await db.query(`
@@ -149,6 +96,17 @@ router.get('/overview', authenticateToken, async (req, res) => {
     });
     expenseStats.net = expenseStats.income - expenseStats.expense;
 
+    // Format YTD expense stats
+    const ytdExpenseStats = {
+      income: 0,
+      expense: 0,
+      net: 0
+    };
+    ytdExpenseStatsQuery.forEach(row => {
+      ytdExpenseStats[row.type] = row.total_amount || 0;
+    });
+    ytdExpenseStats.net = (ytdExpenseStats.income || 0) - (ytdExpenseStats.expense || 0);
+
     // Calculate weekly schedule adherence
     const scheduleAdherence = await db.query(`
       SELECT 
@@ -170,6 +128,11 @@ router.get('/overview', authenticateToken, async (req, res) => {
       currentMonth: {
         work: workStatsQuery[0],
         expenses: expenseStats
+      },
+      toDate: {
+        work: ytdWorkStatsQuery[0],
+        expenses: ytdExpenseStats,
+        net: (ytdWorkStatsQuery[0]?.total_earnings || 0) + (ytdExpenseStats.income || 0) - (ytdExpenseStats.expense || 0)
       },
       recentActivity: {
         workDays: recentWorkDays,

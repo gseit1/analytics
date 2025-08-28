@@ -9,6 +9,24 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/calendar',
+    name: 'Calendar',
+    component: () => import('@/views/Calendar.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/goals',
+    name: 'Goals',
+    component: () => import('@/views/Goals.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/customization',
+    name: 'Customization',
+    component: () => import('@/views/Customization.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/Login.vue')
@@ -27,31 +45,13 @@ const routes = [
   {
     path: '/expenses',
     name: 'Expenses',
-    component: () => import('@/views/Expenses.vue'),
+    component: () => import('@/views/ExpensesNew.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/schedule',
     name: 'Schedule',
-    component: () => import('@/views/Schedule.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/calendar',
-    name: 'Calendar',
-    component: () => import('@/views/Calendar.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/goals',
-    name: 'Goals',
-    component: () => import('@/views/Goals.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/customization',
-    name: 'Customization',
-    component: () => import('@/views/Customization.vue'),
+    component: () => import('@/views/ScheduleNew.vue'),
     meta: { requiresAuth: true }
   },
   {

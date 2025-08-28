@@ -22,7 +22,7 @@ module.exports = {
     'space-infix-ops': 'off',
     'operator-linebreak': 'off',
     'multiline-ternary': 'off',
-    'indent': 'off',
+    indent: 'off',
     'comma-dangle': 'off',
     'no-unused-vars': 'warn'
   }

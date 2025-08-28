@@ -85,12 +85,68 @@ async function setupDatabase() {
       )
     `);
 
+    // Create calendar_events table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS calendar_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        event_type ENUM('todo', 'meeting', 'reminder', 'work', 'study', 'exam', 'personal', 'appointment') NOT NULL DEFAULT 'todo',
+        start_date DATE NOT NULL,
+        start_time TIME,
+        end_time TIME,
+        location VARCHAR(255),
+        priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
+        status ENUM('pending', 'in_progress', 'completed', 'cancelled') DEFAULT 'pending',
+        color VARCHAR(7) DEFAULT '#3b82f6',
+        is_all_day BOOLEAN DEFAULT false,
+        reminder_minutes INT,
+        course VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_user_date (user_id, start_date)
+      )
+    `);
+
+    // Create scheduled_work_days table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS scheduled_work_days (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        work_date DATE NOT NULL,
+        hours DECIMAL(4,2) DEFAULT 8.00,
+        is_recurring BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_date (user_id, work_date)
+      )
+    `);
+
+    // Create skipped_work_days table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS skipped_work_days (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        work_date DATE NOT NULL,
+        reason VARCHAR(255) DEFAULT 'manually_skipped',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_date (user_id, work_date)
+      )
+    `);
+
     console.log('Database setup completed successfully!');
     console.log('Tables created:');
     console.log('- user');
     console.log('- work_days');
     console.log('- expenses');
     console.log('- work_schedule');
+    console.log('- calendar_events');
+    console.log('- scheduled_work_days');
+    console.log('- skipped_work_days');
     
   } catch (error) {
     console.error('Error setting up database:', error);
